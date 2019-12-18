@@ -27,6 +27,31 @@ npm install --save aws-appsync
 yarn add aws-appsync
 ```
 
+### AWS AppSync Compatibility
+For version <= 2.x.x, the selection set for the subscription will be the mutation selection set. For version >= 3.x.x, the subscription selection set will be the intersection between mutation and subscription selection sets. More info [here](https://docs.aws.amazon.com/appsync/latest/devguide/real-time-data.html)
+
+#### React Native Compatibility
+When using this library with React Native, you need to ensure you are using the correct version of the library based on your version of React Native. Take a look at the table below to determine what version to use.
+
+
+| `aws-appsync` version                     | Required React Native Version                                                 
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `2.x.x`                                   | `>= 0.60`
+| `1.x.x`                                   | `<= 0.59`                                                                      
+
+If you are using React Native `0.60` and above, you also need to install `@react-native-community/netinfo`:
+
+```
+npm install --save @react-native-community/netinfo
+```
+or 
+```
+yarn add @react-native-community/netinfo
+```
+If you are using React Native `0.60+` for iOS, run the following command as an additional step: 
+```
+cd ios && pod install && cd ..
+```
 ## Usage
 
 Please visit the [documentation with the Amplify Framework](https://aws-amplify.github.io/docs/js/api) for detailed instructions.
@@ -644,7 +669,54 @@ export default {
 }
 ```
 
-### Angular / Ionic examples coming soon
+### Using Authorization and Subscription links with Apollo Client (No offline support)
+
+For versions of the Apollo client newer than 2.4.6 you can use custom links for Authorization and Subscriptions. Offline support is not available for these newer versions. The packages available are
+`aws-appsync-auth-link` and `aws-appsync-subscription-link`. Below is a sample code snippet that shows how to use it.
+
+
+```javascript
+import { createAuthLink } from 'aws-appsync-auth-link';
+import { createSubscriptionHandshakeLink } from 'aws-appsync-subscription-link';
+
+import { ApolloLink } from 'apollo-link';
+import { createHttpLink } from 'apollo-link-http';
+import ApolloClient from 'apollo-client';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+
+import appSyncConfig from "./aws-exports";
+
+const url = appSyncConfig.aws_appsync_graphqlEndpoint;
+const region = appSyncConfig.aws_appsync_region;
+const auth = {
+  type: appSyncConfig.aws_appsync_authenticationType,
+  apiKey: appSyncConfig.aws_appsync_apiKey,
+};
+
+const httpLink = createHttpLink({ uri: url });
+
+const link = ApolloLink.from([
+  createAuthLink({ url, region, auth }),
+  createSubscriptionHandshakeLink(url, httpLink)
+]);
+
+const client = new ApolloClient({
+  link,
+  cache: new InMemoryCache()
+})
+```
+
+For version 3+, the `createSubscriptionHandshakeLink` can also be configured the same as `createAuthLink`. [This will have the same behavior as mentioned here for version 3+](#aws-appsync-compatibility) Please see the example below: 
+```javascript
+// Previous code snippets above work the same.
+// ...
+const link = ApolloLink.from([
+  createAuthLink({ url, region, auth }),
+  createSubscriptionHandshakeLink({ url, region, auth })
+]);
+// ...
+
+```
 
 ## Creating an AppSync Project    
 
